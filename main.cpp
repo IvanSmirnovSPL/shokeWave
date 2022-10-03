@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cmath>
+#include <string>
 
 struct problemParms
 {
@@ -29,7 +30,7 @@ struct waveParams
                      (sin(theta) * cos(theta - _PARAMS._beta));
         double rho = _rho / (1 - _u_n);
         double pressure = _pressure + _rho * _u_n * _v_n * _v_n;
-        double temperature = M * pressure / _rho / R;
+        double temperature = M * pressure / rho / R;
         return waveParams(pressure, temperature, rho);
         
 
@@ -83,12 +84,42 @@ double df(double theta, const waveParams& wP, const problemParms& pP)
 }
 
 
-int main()
+int main(int argc, char** argv)
 {
-    problemParms params(5., 15.);
+    double MACH = 5., BETA = 15.;
+    std::string M = "-M", B = "-B";
+    if (argc > 1)
+    {
+        if (argc == 5 && ((argv[1] == M && argv[3] == B) || (argv[3] == M && argv[1] == B)))
+        {
+            if (argv[1] == M)
+            {
+                MACH = atoi(argv[2]);
+                BETA = atoi(argv[4]);
+            }
+            else
+            {
+                MACH = atoi(argv[4]);
+                BETA = atoi(argv[2]);
+            }
+
+        }
+        else{
+            if (argc == 2)
+            {
+            std::cout<<"This is a programm to solve SHOCK WAVE."<<
+            "\nThe result is theta, presure, temperaure, density after wave."<<
+            "\nPlese use flags: [-M] <MACH>, [-B] <BETA>. BETA in degrees."<<
+            "\nDefault is MACH = 5, BETA = 15."<<std::endl;
+            return 0;
+            }
+        }
+    }
+    
+    problemParms params(MACH, BETA);
     waveParams P1 = waveParams(params, 1.01325e5, 300);
-    double theta = methodNewton(2 * params._beta + M_PI / 4, 1.e-5, P1, params, &f, &df);
+    double theta = methodNewton(params._beta / 2+ M_PI/4, 1.e-8, P1, params, &f, &df);
     std::cout<<"theta: "<<theta * 180. / M_PI<<std::endl;
-    std::cout<< P1.afterWave(theta)<<std::endl;
+    std::cout<< P1.afterWave(theta);
     return 0;
 }
