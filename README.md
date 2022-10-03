@@ -2,4 +2,6 @@
 
 g++ main.cpp
 
-# HELP: ./a.out -h
+# HELP
+
+./a.out -h
