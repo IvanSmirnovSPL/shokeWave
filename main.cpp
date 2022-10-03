@@ -11,14 +11,36 @@ struct problemParms
 
 struct waveParams
 {
+    waveParams(const problemParms& PARAMS, double pressure, double temperature, double rho):
+    _PARAMS(PARAMS), _rho(rho), _pressure(pressure), _tempreture(temperature){}
     waveParams(double pressure, double temperature, double rho):
     _rho(rho), _pressure(pressure), _tempreture(temperature){}
-    waveParams(double pressure, double temperature):
-    _pressure(pressure), _tempreture(temperature){_rho = M * _pressure / R / temperature;}
+    waveParams(const problemParms& PARAMS, double pressure, double temperature):
+    _PARAMS(PARAMS), _pressure(pressure), _tempreture(temperature){_rho = M * _pressure / R / temperature;
+                                                  _a = std::sqrt(gamma * _pressure / _rho);
+                                                  _v = PARAMS._Mach * _a;}
     waveParams() = default;
+
+    waveParams afterWave(double theta)
+    {
+        using namespace std;
+        _v_n = _v * sin(theta);
+        _u_n = 1 - (sin(theta - _PARAMS._beta) * cos(theta)) /
+                     (sin(theta) * cos(theta - _PARAMS._beta));
+        double rho = _rho / (1 - _u_n);
+        double pressure = _pressure + _rho * _u_n * _v_n * _v_n;
+        double temperature = M * pressure / _rho / R;
+        return waveParams(pressure, temperature, rho);
+        
+
+    }
     double _rho;
     double _pressure;
     double _tempreture;
+    double _a;
+    double _v;
+    double _v_n, _u_n;
+    problemParms _PARAMS;
     static constexpr double R = 8.31446261815324; // universal gas const
     static constexpr double M = 29.e-3; //simple air
     static constexpr double gamma = 1.4; 
@@ -64,8 +86,9 @@ double df(double theta, const waveParams& wP, const problemParms& pP)
 int main()
 {
     problemParms params(5., 15.);
-    waveParams P1 = waveParams(1.01325e5, 300);
-    double rez = methodNewton(2 * params._beta + M_PI / 4, 1.e-5, P1, params, &f, &df);
-    std::cout<<rez * 180. / M_PI<<std::endl;
+    waveParams P1 = waveParams(params, 1.01325e5, 300);
+    double theta = methodNewton(2 * params._beta + M_PI / 4, 1.e-5, P1, params, &f, &df);
+    std::cout<<"theta: "<<theta * 180. / M_PI<<std::endl;
+    std::cout<< P1.afterWave(theta)<<std::endl;
     return 0;
 }
